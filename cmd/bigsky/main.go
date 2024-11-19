@@ -205,6 +205,11 @@ func run(args []string) error {
 			Usage:   "specify list of shard directories for carstore storage, overrides default storage within datadir",
 			EnvVars: []string{"RELAY_CARSTORE_SHARD_DIRS"},
 		},
+		&cli.BoolFlag{
+			Name:    "non-archival",
+			EnvVars: []string{"RELAY_NON_ARCHIVAL"},
+			Value:   false,
+		},
 	}
 
 	app.Action = runBigsky
@@ -328,9 +333,22 @@ func runBigsky(cctx *cli.Context) error {
 		}
 	}
 
-	cstore, err := carstore.NewCarStore(csdb, csdirs)
-	if err != nil {
-		return err
+	var cstore carstore.CarStore
+
+	if cctx.Bool("non-archival") {
+		cs, err := carstore.NewNonArchivalCarstore(csdb)
+		if err != nil {
+			return err
+		}
+
+		cstore = cs
+	} else {
+		cs, err := carstore.NewCarStore(csdb, csdirs)
+		if err != nil {
+			return err
+		}
+
+		cstore = cs
 	}
 
 	mr := did.NewMultiResolver()
